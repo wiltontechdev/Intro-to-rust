@@ -1,73 +1,62 @@
 use std::io;
+
 const BASE: i32 = 2;
 
-fn binary_additon(binary_1: &str, binary_2: &str) -> String {
+fn binary_addition(binary_1: &str, binary_2: &str) -> String {
+    // Pad both to 8 bits so lengths match
+    let bin_1 = to_bits(binary_1);
+    let bin_2 = to_bits(binary_2);
+
+    // Reverse both so index 0 = LSB (rightmost bit)
+    let b1: Vec<char> = bin_1.chars().rev().collect();
+    let b2: Vec<char> = bin_2.chars().rev().collect();
+
     let mut result = String::new();
-    
-    if binary_1.len() == 1 && binary_2.len() == 1 {
-        let x = binary_1.chars().next().unwrap().to_digit(2).unwrap() as u8;
-        let y = binary_2.chars().next().unwrap().to_digit(2).unwrap() as u8;
-    
-        let (sum, carry) = bits_add(x, y, 0);
+    let mut carry: u8 = 0;
 
-        result.push(char::from_digit(carry as u32, 10).unwrap());
-    
+    // Walk both strings in parallel using one index
+    let mut i = 0;
+    while i < 8 {
+        let x = b1[i].to_digit(10).unwrap() as u8;
+        let y = b2[i].to_digit(10).unwrap() as u8;
+
+        let (sum, new_carry) = bits_add(x, y, carry);
+        carry = new_carry;
+
         result.push(char::from_digit(sum as u32, 10).unwrap());
-        
-    } else {
-        // Assumption : binary nos are  8 bits or less
-        let mut bin_1 = to_bits(&binary_1);
-        let mut bin_2 = to_bits(&binary_2);
-        bin_1 = bin_1.chars().rev().collect();
-        bin_2 = bin_2.chars().rev().collect();
-  
-        let mut len =
-
-        for i in bin_1.chars() {
-            let j = i;
-            let mut carry_val = 0;
-            for j in bin_2.chars() {
-                println!("I: {i}  J: {j}");
-                let (sum, carry)  = bits_add(i.to_digit(10).unwrap() as u8, 
-                                        j.to_digit(10).unwrap() as u8, carry_val);
-                result.push_str(&sum.to_string());
-                carry_val = carry;
-                break;
-            };
-        };
-
-    };
-
-    if result.len() == 9 {
-        result.pop();
-    };
-    result.chars().rev().collect()
-}
-
-fn bits_add(x: u8, y: u8, z: u8) -> (u8, u8) {
-    let total = x + y + z;
-    let sum = total % 2;
-    let carry = total / 2;
-    (sum, carry)
-}
-
-// fn twos_complemet(flipped_bits: &str) -> String {
-
-// }
-
-fn to_bits(binary: &str) -> String {
-    if binary.len() >= 9 {
-        return binary.to_string()
+        i += 1;
     }
 
-    let mut bits = String::new();
-    let mut deficit = 9 - binary.len();
-    while deficit > 1 {
-        bits.push('0');
-        deficit -= 1;
-    };
-    bits.push_str(&binary);
-    bits
+    // If carry remains after all 8 bits, there is overflow
+    if carry == 1 {
+        result.push('1');
+    }
+
+    // Reverse to restore MSB-first order, then trim leading zeros
+    let reversed: String = result.chars().rev().collect();
+    let trimmed = reversed.trim_start_matches('0');
+
+    if trimmed.is_empty() {
+        "0".to_string()
+    } else {
+        trimmed.to_string()
+    }
+}
+
+fn bits_add(x: u8, y: u8, carry: u8) -> (u8, u8) {
+    let total = x + y + carry;
+    let sum = total % 2;
+    let new_carry = total / 2;
+    (sum, new_carry)
+}
+
+fn to_bits(binary: &str) -> String {
+    if binary.len() >= 8 {
+        return binary.to_string();
+    }
+
+    let padding = "0".repeat(8 - binary.len());
+    format!("{}{}", padding, binary)
 }
 
 fn flip_bits(bits: &str) -> String {
@@ -78,18 +67,17 @@ fn flip_bits(bits: &str) -> String {
             flipped.push('1');
         } else if ch == '1' {
             flipped.push('0');
-        } else{
-            println!("Invalid Bit number");
-        };
-    };
+        } else {
+            println!("Invalid bit: {}", ch);
+        }
+    }
 
     flipped
 }
 
-
 fn to_binary(n: i32) -> String {
     if n == 0 {
-        return "0".to_string()
+        return "0".to_string();
     }
 
     let mut bin_conv = String::new();
@@ -107,7 +95,6 @@ fn to_binary(n: i32) -> String {
 }
 
 fn main() {
-
     println!("Enter a number: ");
 
     let mut number = String::new();
@@ -116,25 +103,20 @@ fn main() {
         .read_line(&mut number)
         .expect("Failed to read line");
 
-    // Input Validation
-    let number: i32 = number.trim().parse()
+    let number: i32 = number
+        .trim()
+        .parse()
         .expect("Please enter a valid integer");
 
-    // let binary = to_binary(number);
-    // let bit_format = to_bits(&binary);
-    // let flipped = flip_bits(&bit_format);
+    let binary = to_binary(number);
+    let bit_format = to_bits(&binary);
+    let flipped = flip_bits(&bit_format);
 
-    // let bits_additon = bits_add(1, 0);
-
-
-    // println!("{} carry {}", bits_additon.0, bits_additon.1);
-    // println!("Converted {} number to binary is: {}", number, binary);
-    // println!("To 8 bit format: {}", bit_format);
-    // println!("flipped bit: {}", flipped);
-
-    
-    println!("Binary addition: {} + {} = {}", "11", "1", binary_additon("11", "1"));
-
-
-
+    println!("Decimal        : {}", number);
+    println!("Binary         : {}", binary);
+    println!("8-bit format   : {}", bit_format);
+    println!("Flipped bits   : {}", flipped);
+    println!();
+    println!("Addition test  : {} + {} = {}", "101", "11", binary_addition("101", "11"));
+    println!("Expected       : 1000  (5 + 3 = 8)");
 }
